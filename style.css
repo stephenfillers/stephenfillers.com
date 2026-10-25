@@ -427,10 +427,16 @@ button {
       color-mix(in srgb, var(--glow) 4%, transparent),
       transparent 70%
     );
-  filter: blur(40px);
   animation:
     glow-drift 24s ease-in-out infinite alternate,
     glow-pulse 7s ease-in-out infinite alternate;
+}
+
+/* script.js flags the hero once it scrolls away, so its endless animations
+   stop costing frames nobody can see */
+.hero.is-offscreen .hero-glow,
+.hero.is-offscreen .status-dot::after {
+  animation-play-state: paused;
 }
 
 @keyframes glow-drift {
@@ -482,20 +488,32 @@ button {
 }
 
 .status-dot {
+  position: relative;
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.6);
+}
+
+/* The pulse ring: scaling and fading a copy of the dot stays on the GPU,
+   where animating box-shadow would repaint every frame */
+.status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(var(--accent-rgb), 0.6);
   animation: pulse 2.4s infinite;
 }
 
 @keyframes pulse {
   70% {
-    box-shadow: 0 0 0 8px rgba(var(--accent-rgb), 0);
+    transform: scale(3);
+    opacity: 0;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
+    transform: scale(3);
+    opacity: 0;
   }
 }
 
@@ -1382,9 +1400,12 @@ html.has-modal {
 
 /* ---------- Resume timeline ---------- */
 
+/* The lines sit on layer 0 and each entry on layer 1, so the dots always
+   cover the lines, even while an entry's fade-in gives it its own layer */
 .timeline {
   --progress: 0;
   position: relative;
+  isolation: isolate;
   padding-left: 2rem;
   max-width: 760px;
 }
@@ -1393,7 +1414,9 @@ html.has-modal {
 .timeline::after {
   content: "";
   position: absolute;
-  left: 0.35rem;
+  z-index: 0;
+  /* Centered under the 0.85rem dots */
+  left: calc(0.425rem - 1px);
   top: 0.5rem;
   bottom: 0.5rem;
   width: 2px;
@@ -1412,6 +1435,7 @@ html.has-modal {
 
 .timeline-item {
   position: relative;
+  z-index: 1;
   padding-bottom: 2.5rem;
 }
 
@@ -1503,13 +1527,18 @@ html.has-modal {
   content: "";
   position: absolute;
   z-index: -1;
-  width: 30rem;
-  height: 30rem;
-  right: -10rem;
-  top: -14rem;
-  border-radius: 50%;
-  background: var(--glow);
-  filter: blur(100px);
+  /* Same center as the old 30rem disc under a 100px blur, sized to cover
+     how far that blur spread; the gradient fades out on its own instead */
+  width: 56rem;
+  height: 56rem;
+  right: -23rem;
+  top: -27rem;
+  background: radial-gradient(
+    closest-side,
+    var(--glow) 15%,
+    color-mix(in srgb, var(--glow) 45%, transparent) 50%,
+    transparent
+  );
   opacity: 0.28;
 }
 

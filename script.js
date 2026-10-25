@@ -319,6 +319,8 @@ const runGridTraces = function (canvas) {
   let visible = true;
   let frame = null;
   let last = 0;
+  let drawn = false; // whether the canvas has anything on it to clear
+  let sleepTimer = null;
 
   const resize = function () {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -327,6 +329,7 @@ const runGridTraces = function (canvas) {
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawn = false; // resizing wipes the canvas
   };
 
   const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
@@ -422,25 +425,44 @@ const runGridTraces = function (canvas) {
       nextSpawn = 2 + Math.random() * 3.5;
     }
 
-    ctx.clearRect(0, 0, width, height);
-    traces.forEach((trace) => {
-      trace.dist += speed * dt;
-      drawTrace(trace);
-    });
-    traces = traces.filter((trace) => trace.dist < trace.length);
+    // Most of the time no trace is running; leave the canvas untouched then,
+    // so the browser doesn't re-upload a blank full-hero texture every frame
+    if (traces.length || drawn) {
+      ctx.clearRect(0, 0, width, height);
+      traces.forEach((trace) => {
+        trace.dist += speed * dt;
+        drawTrace(trace);
+      });
+      drawn = traces.length > 0;
+      traces = traces.filter((trace) => trace.dist < trace.length);
+    }
+
+    // Between traces, sleep until the next one is due instead of waking
+    // the page every frame for nothing
+    if (!traces.length && !drawn) {
+      frame = null;
+      sleepTimer = setTimeout(() => {
+        sleepTimer = null;
+        nextSpawn = 0;
+        start();
+      }, nextSpawn * 1000);
+      return;
+    }
 
     frame = requestAnimationFrame(tick);
   };
 
   const start = function () {
-    if (frame || !visible || document.hidden) return;
+    if (frame || sleepTimer || !visible || document.hidden) return;
     last = performance.now();
     frame = requestAnimationFrame(tick);
   };
 
   const stop = function () {
     cancelAnimationFrame(frame);
+    clearTimeout(sleepTimer);
     frame = null;
+    sleepTimer = null;
   };
 
   new ResizeObserver(resize).observe(canvas);
@@ -457,6 +479,12 @@ const runGridTraces = function (canvas) {
 };
 
 if (gridTrace && !reduceMotion.matches) runGridTraces(gridTrace);
+
+// Pause the hero's endless CSS animations (glow, status pulse) off screen
+const hero = document.querySelector(".hero");
+new IntersectionObserver(([entry]) => {
+  hero.classList.toggle("is-offscreen", !entry.isIntersecting);
+}).observe(hero);
 
 // Resume timeline: fill the line as it scrolls past the middle of the screen
 
@@ -499,11 +527,12 @@ const formStatus = document.querySelector("#form-status");
 const submitButton = contactForm.querySelector('button[type="submit"]');
 
 // Turnstile tokens are single-use, so keep this widget's ID to reset it after
-// every send. api.js may load before or after this script, so handle both.
+// every send. Its script is over a megabyte, so it only loads once the form is
+// about a screen away, or as soon as someone focuses a field.
 const turnstileBox = document.querySelector("#contact-turnstile");
 let turnstileId = null;
 
-const renderTurnstile = function () {
+window.onTurnstileLoad = function () {
   turnstileId = window.turnstile.render(turnstileBox, {
     sitekey: turnstileBox.dataset.sitekey,
     action: turnstileBox.dataset.action,
@@ -512,8 +541,21 @@ const renderTurnstile = function () {
   });
 };
 
-if (window.turnstile) renderTurnstile();
-else window.onTurnstileLoad = renderTurnstile;
+const loadTurnstile = function () {
+  turnstileObserver.disconnect();
+  contactForm.removeEventListener("focusin", loadTurnstile);
+  const script = document.createElement("script");
+  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad";
+  script.async = true;
+  document.head.append(script);
+};
+
+const turnstileObserver = new IntersectionObserver(
+  ([entry]) => entry.isIntersecting && loadTurnstile(),
+  { rootMargin: "100% 0px" }
+);
+turnstileObserver.observe(contactForm);
+contactForm.addEventListener("focusin", loadTurnstile);
 
 const setStatus = function (message, kind) {
   formStatus.textContent = message;

@@ -7,11 +7,13 @@ if (document.documentElement.classList.contains("gsap")) {
 
   // Plays once on the way in. If the element is already scrolled past (a reload
   // partway down, or a jump from the nav) it finishes instantly instead of
-  // animating out of sight.
+  // animating out of sight. No `once: true`: on a reload partway down, those
+  // triggers kill themselves mid-refresh and crash ScrollTrigger, leaving
+  // every element set up after that point hidden. The default toggleActions
+  // never reverse, so leaving them alive changes nothing visible.
   const onScreen = (trigger, start = "top 85%") => ({
     trigger,
     start,
-    once: true,
     onEnter: (self) => {
       if (self.scroll() > self.end) self.animation.progress(1);
     },
@@ -103,7 +105,9 @@ if (document.documentElement.classList.contains("gsap")) {
     const fromWidth = rotatorWord.offsetWidth;
 
     gsap
-      .timeline({ onComplete: () => gsap.delayedCall(2.4, nextWord) })
+      // A plain timer rather than gsap.delayedCall, which would keep GSAP's
+      // ticker (and so the page) rendering every frame during the pause
+      .timeline({ onComplete: () => setTimeout(nextWord, 2400) })
       .to(rotatorWord.children, {
         yPercent: -60,
         rotateX: 90,
@@ -131,7 +135,7 @@ if (document.documentElement.classList.contains("gsap")) {
   };
 
   setChars(words[0]);
-  gsap.delayedCall(3.2, nextWord);
+  setTimeout(nextWord, 3200);
 
   // Section labels decode, titles rise word by word out of masked lines
 
@@ -295,10 +299,13 @@ if (document.documentElement.classList.contains("gsap")) {
   });
 
   timeline.querySelectorAll(".timeline-item").forEach((item) => {
+    // Only the text slides in. The dot stays solid on the track: if the whole
+    // entry faded, the line would show through its half-transparent dot
+    showNow(item);
     gsap.fromTo(
-      item,
-      { autoAlpha: 0, x: -30, y: 0 },
-      { autoAlpha: 1, x: 0, y: 0, duration: 1, ease: "expo.out", onComplete: handBack, scrollTrigger: onScreen(item) }
+      item.children,
+      { autoAlpha: 0, x: -30 },
+      { autoAlpha: 1, x: 0, duration: 1, ease: "expo.out", stagger: 0.05, onComplete: handBack, scrollTrigger: onScreen(item) }
     );
 
     ScrollTrigger.create({
@@ -312,7 +319,7 @@ if (document.documentElement.classList.contains("gsap")) {
   // Contact: card opens out from a smaller rounded frame
 
   const contactCard = document.querySelector(".contact-card");
-  const contactRest = contactCard.querySelectorAll(".contact-lead, .contact-actions .btn, .socials a");
+  const contactRest = contactCard.querySelectorAll(".contact-lead, .contact-form, .socials a");
   prep(contactRest);
 
   gsap
@@ -339,7 +346,7 @@ if (document.documentElement.classList.contains("gsap")) {
 
   if (finePointer.matches) {
     document
-      .querySelectorAll(".hero-actions .btn, .contact-actions .btn, .site-nav .btn")
+      .querySelectorAll(".hero-actions .btn, .contact-form .btn, .site-nav .btn")
       .forEach((btn) => {
         btn.classList.add("magnetic");
         const xTo = gsap.quickTo(btn, "x", { duration: 0.6, ease: "elastic.out(1, 0.5)" });

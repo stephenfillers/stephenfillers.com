@@ -7,3 +7,6 @@ wrangler.jsonc
 .assetsignore
 .gitignore
 *.md
+# Worker source and local secrets
+worker/
+.dev.vars*

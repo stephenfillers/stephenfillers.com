@@ -1,0 +1,5 @@
+# Copy to .dev.vars for `wrangler dev`. These Turnstile keys are Cloudflare's
+# always-pass test pair; swap in real values only via `wrangler secret put`.
+RESEND_API_KEY=re_xxxxxxxx
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+CONTACT_TO=you@example.com

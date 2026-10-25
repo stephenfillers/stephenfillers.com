@@ -492,35 +492,70 @@ window.addEventListener("scroll", onScroll, { passive: true });
 window.addEventListener("resize", onScroll);
 onScroll();
 
-// Contact: copy email address to the clipboard
+// Contact: send the form to the Worker at /api/contact
 
-const copyButton = document.querySelector("#copy-email");
-const toast = document.querySelector("#toast");
-let toastTimer = null;
+const contactForm = document.querySelector("#contact-form");
+const formStatus = document.querySelector("#form-status");
+const submitButton = contactForm.querySelector('button[type="submit"]');
 
-const showToast = function (message) {
-  toast.textContent = message;
-  toast.classList.add("is-shown");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("is-shown"), 2200);
+// Turnstile tokens are single-use, so keep this widget's ID to reset it after
+// every send. api.js may load before or after this script, so handle both.
+const turnstileBox = document.querySelector("#contact-turnstile");
+let turnstileId = null;
+
+const renderTurnstile = function () {
+  turnstileId = window.turnstile.render(turnstileBox, {
+    sitekey: turnstileBox.dataset.sitekey,
+    action: turnstileBox.dataset.action,
+    theme: "dark",
+    size: "flexible",
+  });
 };
 
-const copyLabel = copyButton.querySelector(".copy-label");
-let copiedTimer = null;
+if (window.turnstile) renderTurnstile();
+else window.onTurnstileLoad = renderTurnstile;
 
-copyButton.addEventListener("click", async function () {
+const setStatus = function (message, kind) {
+  formStatus.textContent = message;
+  formStatus.classList.toggle("is-success", kind === "success");
+  formStatus.classList.toggle("is-error", kind === "error");
+};
+
+contactForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  contactForm.classList.add("was-submitted");
+
+  if (!contactForm.checkValidity()) {
+    setStatus("Please fill in your name, a valid email and a message.", "error");
+    contactForm.querySelector(":invalid").focus();
+    return;
+  }
+
+  const data = new FormData(contactForm);
+  if (!data.get("cf-turnstile-response")) {
+    setStatus("Hang on a second while we check you’re human, then try again.", "error");
+    return;
+  }
+
+  submitButton.disabled = true;
+  setStatus("Sending…");
+
   try {
-    await navigator.clipboard.writeText(copyButton.dataset.email);
-    showToast("Email copied to clipboard");
-    copyButton.classList.add("is-copied");
-    copyLabel.textContent = "Copied";
-    clearTimeout(copiedTimer);
-    copiedTimer = setTimeout(() => {
-      copyButton.classList.remove("is-copied");
-      copyLabel.textContent = "Copy email";
-    }, 2200);
+    const res = await fetch(contactForm.action, { method: "POST", body: data });
+    const result = await res.json().catch(() => ({}));
+
+    if (result.ok) {
+      contactForm.reset();
+      contactForm.classList.remove("was-submitted");
+      setStatus("Thanks! Your message is on its way. I’ll be in touch soon.", "success");
+    } else {
+      setStatus(result.error || "Something went wrong. Please try again.", "error");
+    }
   } catch {
-    showToast(copyButton.dataset.email);
+    setStatus("Couldn’t reach the server. Check your connection and try again.", "error");
+  } finally {
+    submitButton.disabled = false;
+    if (turnstileId !== null) window.turnstile.reset(turnstileId);
   }
 });
 

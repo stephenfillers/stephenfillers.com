@@ -1,2 +1,5 @@
 # Wrangler local cache
 .wrangler/
+
+# Local Worker secrets
+.dev.vars

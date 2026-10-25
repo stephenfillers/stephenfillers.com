@@ -1528,31 +1528,106 @@ html.has-modal {
   margin-bottom: 2rem;
 }
 
-.contact-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+.contact-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 40rem;
   margin-bottom: 2.5rem;
 }
 
-/* Copy button: icon-only beside the email, swaps to a check once copied.
-   The label only shows when the buttons stack on small screens. */
-.copy-btn .icon-check,
-.copy-btn .copy-label {
-  display: none;
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
 }
 
-.copy-btn.is-copied {
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.field textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: var(--subtle);
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: none;
   border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft);
 }
 
-.copy-btn.is-copied .icon-copy {
-  display: none;
+/* Flagged only after a submit attempt, so empty fields don't start out red */
+.contact-form.was-submitted :is(input, textarea):invalid {
+  border-color: var(--brick-red);
 }
 
-.copy-btn.is-copied .icon-check {
-  display: block;
+/* Honeypot: off-screen rather than display:none, which some bots skip */
+.field-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.form-footer .cf-turnstile {
+  flex: 1 1 18rem;
+  max-width: 22rem;
+}
+
+.contact-form button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.form-status {
+  min-height: 1.65em;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.form-status.is-success {
+  color: var(--brick-green);
+}
+
+.form-status.is-error {
+  color: var(--brick-red);
 }
 
 .socials {
@@ -1586,7 +1661,7 @@ svg.fill {
   fill: currentColor;
 }
 
-/* ---------- Footer & toast ---------- */
+/* ---------- Footer ---------- */
 
 .site-footer {
   border-top: 1px solid var(--border);
@@ -1600,28 +1675,6 @@ svg.fill {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem;
-}
-
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 1.5rem;
-  z-index: 60;
-  padding: 0.7rem 1.1rem;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 0.9rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transform: translate(-50%, 1rem);
-  pointer-events: none;
-  transition: opacity 0.3s, transform 0.4s var(--ease);
-}
-
-.toast.is-shown {
-  opacity: 1;
-  transform: translate(-50%, 0);
 }
 
 /* ---------- Reveal on scroll ---------- */
@@ -1742,25 +1795,14 @@ svg.fill {
   }
 }
 
-/* Email and copy no longer fit side by side: stack them full width */
+/* Name and email stack, and the send button runs full width */
 @media (max-width: 520px) {
-  .contact-actions {
-    flex-direction: column;
+  .field-row {
+    grid-template-columns: 1fr;
   }
 
-  /* Text eases down on the smallest phones so the address never overflows */
-  .contact-actions .btn {
-    --pad-y: 1rem;
-    --pad-x: 0.75rem;
-    font-size: clamp(0.75rem, 4.4vw, 1rem);
-  }
-
-  .contact-actions .copy-btn {
-    aspect-ratio: auto;
-  }
-
-  .copy-btn .copy-label {
-    display: inline;
+  .form-footer .btn {
+    width: 100%;
   }
 }
 

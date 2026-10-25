@@ -1,0 +1,7 @@
+# Copy to .dev.vars for `wrangler dev` (it's gitignored). Cloudflare's Turnstile
+# test keys won't pass the action/hostname checks, so local testing needs the
+# real widget secret and a widget that lists localhost as a domain.
+RESEND_API_KEY=re_xxxxxxxx
+TURNSTILE_SECRET=
+CONTACT_TO=you@example.com
+TURNSTILE_HOSTNAMES=localhost,127.0.0.1

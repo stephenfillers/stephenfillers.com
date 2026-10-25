@@ -37,6 +37,7 @@
     <script defer src="script.js"></script>
     <script defer src="motion.js"></script>
     <script defer src="egg.js"></script>
+    <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -650,32 +651,46 @@
             <p class="section-label">05 / Contact</p>
             <h2 class="contact-title">Let’s build something together.</h2>
             <p class="contact-lead">
-              Have a project, a role, or just want to say hello? My inbox is
-              open.
+              Have a project, a role, or just want to say hello? Send me a
+              note and I’ll get back to you.
             </p>
-            <div class="contact-actions">
-              <a
-                class="btn btn-primary btn-lg"
-                href="mailto:hello@stephenfillers.com"
-                >hello@stephenfillers.com</a
-              >
-              <button
-                class="btn btn-ghost btn-icon copy-btn"
-                id="copy-email"
-                data-email="hello@stephenfillers.com"
-                aria-label="Copy email address"
-                title="Copy email address"
-              >
-                <svg class="icon-copy" viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <path d="M5 15V6a2 2 0 0 1 2-2h9" />
-                </svg>
-                <svg class="icon-check" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m5 12.5 4.5 4.5L19 7.5" />
-                </svg>
-                <span class="copy-label" aria-hidden="true">Copy email</span>
-              </button>
-            </div>
+            <form class="contact-form" id="contact-form" action="/api/contact" method="post" novalidate>
+              <div class="field-row">
+                <label class="field">
+                  <span class="field-label">Name</span>
+                  <input type="text" name="name" autocomplete="name" maxlength="100" required />
+                </label>
+                <label class="field">
+                  <span class="field-label">Email</span>
+                  <input type="email" name="email" autocomplete="email" maxlength="254" required />
+                </label>
+              </div>
+              <label class="field">
+                <span class="field-label">Message</span>
+                <textarea name="message" rows="5" maxlength="5000" required></textarea>
+              </label>
+              <!-- Honeypot: hidden from people, irresistible to bots -->
+              <label class="field-trap" aria-hidden="true">
+                Website
+                <input type="text" name="website" tabindex="-1" autocomplete="off" />
+              </label>
+              <div class="form-footer">
+                <!-- Rendered explicitly by script.js so it can be reset after each send -->
+                <div
+                  class="cf-turnstile"
+                  id="contact-turnstile"
+                  data-sitekey="0x4AAAAAAFlmRj7oQ036GOaz"
+                  data-action="contact"
+                ></div>
+                <button type="submit" class="btn btn-primary btn-lg">
+                  Send message
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+              <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+            </form>
             <div class="socials">
               <a
                 href="https://www.linkedin.com/in/stephenfillers/"
@@ -716,6 +731,5 @@
       </div>
     </footer>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>

@@ -15,7 +15,10 @@
   // Not secret. RESEND_API_KEY, TURNSTILE_SECRET and CONTACT_TO are secrets:
   // set them with `wrangler secret put <NAME>` (or .dev.vars locally).
   "vars": {
-    "CONTACT_FROM": "Contact Form <form@mail.stephenfillers.com>"
+    "CONTACT_FROM": "Contact Form <form@mail.stephenfillers.com>",
+    // Hostnames a Turnstile token may come from (comma-separated). Production
+    // only; .dev.vars overrides it with localhost for `wrangler dev`.
+    "TURNSTILE_HOSTNAMES": "stephenfillers.com"
   },
   // Required by `wrangler preview`, which Workers Builds runs for pull requests.
   // Docs: https://developers.cloudflare.com/workers/previews/configuration/

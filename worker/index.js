@@ -5,6 +5,7 @@
 //   RESEND_API_KEY    sending key for mail.stephenfillers.com
 //   TURNSTILE_SECRET  secret key for the Turnstile widget on the form
 //   CONTACT_TO        inbox the messages are delivered to
+// TURNSTILE_HOSTNAMES (a plain var) lists the hostnames tokens may come from.
 
 const LIMITS = { name: 100, email: 254, message: 5000 };
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -13,18 +14,52 @@ const json = function (body, status = 200) {
   return Response.json(body, { status });
 };
 
-const verifyTurnstile = async function (token, ip, secret) {
-  const body = new FormData();
-  body.append("secret", secret);
-  body.append("response", token);
-  if (ip) body.append("remoteip", ip);
+// The widget's data-action; siteverify must echo it back unchanged
+const TURNSTILE_ACTION = "contact";
 
-  const res = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    { method: "POST", body }
+const verifyTurnstile = async function (token, ip, env) {
+  const expectedHostnames = new Set(
+    (env.TURNSTILE_HOSTNAMES ?? "")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean)
   );
-  const outcome = await res.json();
-  return outcome.success === true;
+
+  if (
+    typeof token !== "string" ||
+    token.length === 0 ||
+    token.length > 2048 ||
+    expectedHostnames.size === 0
+  ) {
+    return false;
+  }
+
+  let outcome;
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: AbortSignal.timeout(10_000),
+        body: new URLSearchParams({
+          secret: env.TURNSTILE_SECRET,
+          response: token,
+          ...(ip && { remoteip: ip }),
+        }),
+      }
+    );
+    if (!res.ok) throw new Error(`siteverify ${res.status}`);
+    outcome = await res.json();
+  } catch {
+    return false;
+  }
+
+  return (
+    outcome.success === true &&
+    outcome.action === TURNSTILE_ACTION &&
+    expectedHostnames.has(outcome.hostname)
+  );
 };
 
 const handleContact = async function (request, env) {
@@ -66,7 +101,7 @@ const handleContact = async function (request, env) {
   }
 
   const ip = request.headers.get("CF-Connecting-IP");
-  if (!token || !(await verifyTurnstile(token, ip, env.TURNSTILE_SECRET))) {
+  if (!(await verifyTurnstile(token, ip, env))) {
     return json(
       { ok: false, error: "Couldn’t verify you’re human. Please try again." },
       403

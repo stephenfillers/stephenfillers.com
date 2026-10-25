@@ -498,6 +498,23 @@ const contactForm = document.querySelector("#contact-form");
 const formStatus = document.querySelector("#form-status");
 const submitButton = contactForm.querySelector('button[type="submit"]');
 
+// Turnstile tokens are single-use, so keep this widget's ID to reset it after
+// every send. api.js may load before or after this script, so handle both.
+const turnstileBox = document.querySelector("#contact-turnstile");
+let turnstileId = null;
+
+const renderTurnstile = function () {
+  turnstileId = window.turnstile.render(turnstileBox, {
+    sitekey: turnstileBox.dataset.sitekey,
+    action: turnstileBox.dataset.action,
+    theme: "dark",
+    size: "flexible",
+  });
+};
+
+if (window.turnstile) renderTurnstile();
+else window.onTurnstileLoad = renderTurnstile;
+
 const setStatus = function (message, kind) {
   formStatus.textContent = message;
   formStatus.classList.toggle("is-success", kind === "success");
@@ -538,8 +555,7 @@ contactForm.addEventListener("submit", async function (event) {
     setStatus("Couldn’t reach the server. Check your connection and try again.", "error");
   } finally {
     submitButton.disabled = false;
-    // Each Turnstile token works once, so fetch a fresh one for the next send
-    window.turnstile?.reset();
+    if (turnstileId !== null) window.turnstile.reset(turnstileId);
   }
 });
 

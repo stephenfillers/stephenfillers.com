@@ -37,7 +37,7 @@
     <script defer src="script.js"></script>
     <script defer src="motion.js"></script>
     <script defer src="egg.js"></script>
-    <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+    <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -675,12 +675,12 @@
                 <input type="text" name="website" tabindex="-1" autocomplete="off" />
               </label>
               <div class="form-footer">
-                <!-- Turnstile test sitekey (always passes); replace with the real one -->
+                <!-- Rendered explicitly by script.js so it can be reset after each send -->
                 <div
                   class="cf-turnstile"
-                  data-sitekey="1x00000000000000000000AA"
-                  data-theme="dark"
-                  data-size="flexible"
+                  id="contact-turnstile"
+                  data-sitekey="0x4AAAAAAFlmRj7oQ036GOaz"
+                  data-action="contact"
                 ></div>
                 <button type="submit" class="btn btn-primary btn-lg">
                   Send message
